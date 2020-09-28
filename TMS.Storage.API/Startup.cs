@@ -1,15 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using API.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.IO;
+using System.Reflection;
 
 namespace API
 {
@@ -25,9 +23,17 @@ namespace API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var connection = Configuration.GetConnectionString("TSMTasksDatabase");
-            services.AddDbContext<TSMTasksContext>(opt => opt.UseSqlServer(connection));
+            var connection = Configuration.GetConnectionString("TMSTasksDatabase");
+            services.AddDbContext<TMSTasksContext>(opt => opt.UseSqlServer(connection));
+            services.AddDbContext<TMSSubTasksContext>(opt => opt.UseSqlServer(connection));
             services.AddControllersWithViews();
+            services.AddSwaggerGen(c =>
+            {
+                // Set the comments path for the Swagger JSON and UI.
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -45,6 +51,17 @@ namespace API
             }
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseSwagger(c =>
+            {
+                c.SerializeAsV2 = true;
+            });
+
+            // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
+            // specifying the Swagger JSON endpoint.
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
 
             app.UseRouting();
 
@@ -54,7 +71,7 @@ namespace API
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Tsmtasks}/{action=Index}/{id?}");
+                    pattern: "{controller=Tmstasks}/{action=Index}/{id?}");
             });
         }
     }

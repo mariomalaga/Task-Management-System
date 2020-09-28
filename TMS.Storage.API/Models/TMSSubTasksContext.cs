@@ -1,29 +1,26 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace API.Models
 {
-    public partial class TSMTasksContext : DbContext
+    public partial class TMSSubTasksContext : DbContext
     {
-        public TSMTasksContext()
+        public TMSSubTasksContext()
         {
+            this.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
 
-        public TSMTasksContext(DbContextOptions<TSMTasksContext> options)
+        public TMSSubTasksContext(DbContextOptions<TMSSubTasksContext> options)
             : base(options)
         {
+            this.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
 
-        public virtual DbSet<Tsmtask> Tsmtask { get; set; }
-
+        public virtual DbSet<TMSSubtask> Tmssubtask { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Tsmtask>(entity =>
+            modelBuilder.Entity<TMSSubtask>(entity =>
             {
-                entity.ToTable("TSMTask");
+                entity.ToTable("TMSSubTask");
 
                 entity.Property(e => e.Id).ValueGeneratedNever();
 
@@ -42,11 +39,12 @@ namespace API.Models
                 entity.Property(e => e.State)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.Property(e => e.IdTask).ValueGeneratedNever();
             });
 
             OnModelCreatingPartial(modelBuilder);
         }
-
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }
 }
