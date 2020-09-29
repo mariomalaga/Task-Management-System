@@ -58,12 +58,12 @@ I am using Swagger in this project. To learn more about swagger: [swagger](https
       "state": "Planned"
     }
     ```
--DELETE **/Tasks/Delete/{id}**: You will delete a task. It is necessary to put the Id of the Task.
+- DELETE **/Tasks/Delete/{id}**: You will delete a task. It is necessary to put the Id of the Task.
     >Example of id: *90a6dadf-3714-4944-b94c-42f928fc37bb*
     
--DELETE **/Subtasks/Delete/{id}**: You will delete a task. It is necessary to put the Id of the Task.
+- DELETE **/Subtasks/Delete/{id}**: You will delete a task. It is necessary to put the Id of the Task.
     >Example of id: *d5a4ecd4-cbc9-47f4-a757-3f1c6d331fe5*
 
 ## TMS.Report.API endpoints:
--GET **/CSV**: You will download a CSV file with the task inProgress for a certain Date. It is necessary to put the DateTime.
+- GET **/CSV**: You will download a CSV file with the task inProgress for a certain Date. It is necessary to put the DateTime.
     >Example of DateTime: *2012-03-19 07:22:12.000*
