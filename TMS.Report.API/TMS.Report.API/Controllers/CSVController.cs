@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using TMS.Report.API.Models;
 
@@ -17,25 +18,38 @@ namespace TMS.Report.API.Controllers
     [ApiController]
     public class CSVController : ControllerBase
     {
+        public List<CSVModel> _dataFromAPI;
         private IConfiguration _configuration;
+
+        [ActivatorUtilitiesConstructor]
         public CSVController(IConfiguration configuration)
         {
             _configuration = configuration;
+            _dataFromAPI = ConnectToTMSAPI();
+        }
+
+        public CSVController(IConfiguration configuration, List<CSVModel> dataFromAPI)
+        {
+            _configuration = configuration;
+            _dataFromAPI = dataFromAPI;
         }
 
         [Route("/CSV")]
         [HttpGet]
-        public async Task<IActionResult> Download(DateTime DateForSearch)
+        public async Task<IActionResult> Download(DateTime? DateForSearch)
         {
-            List<CSVModel> dataFromAPI = ConnectToTMSAPI();
+            if (DateForSearch == null)
+            {
+                return NotFound();
+            }
             List<CSVModel> dataForCSV = new List<CSVModel>();
             var fileName = "report.csv";
             var path = @"d:\" + fileName;
-            for (var i = 0; i < dataFromAPI.Count; i++)
+            for (var i = 0; i < _dataFromAPI.Count; i++)
             {
-                if (dataFromAPI[i].State == "inProgress" && DateForSearch <= dataFromAPI[i].StartDate)
+                if (_dataFromAPI[i].State == "inProgress" && DateForSearch <= _dataFromAPI[i].StartDate)
                 {
-                    dataForCSV.Add(dataFromAPI[i]);
+                    dataForCSV.Add(_dataFromAPI[i]);
                 }
             }
             WriteCSV(dataForCSV, path);
@@ -59,15 +73,13 @@ namespace TMS.Report.API.Controllers
             }
         }
         [ApiExplorerSettings(IgnoreApi = true)]
-        [Route("/ConnectToTMSAPI")]
-        [HttpGet]
         public List<CSVModel> ConnectToTMSAPI()
         {
             HttpClient client = new HttpClient();
             client.BaseAddress = new Uri(_configuration.GetConnectionString("RouteTMSAPI"));
             // Add an Accept header for JSON format.    
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            // List all Names.    
+            // List all Tasks.    
             HttpResponseMessage response = client.GetAsync("Tasks").Result;  // Blocking call!    
             if (response.IsSuccessStatusCode)
             {
