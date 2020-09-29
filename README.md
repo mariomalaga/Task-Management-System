@@ -3,7 +3,8 @@ This project is a TSM(Task Management System) with 2 APIs, in the first API (TMS
 I am using Swagger in this project. To learn more about swagger: [swagger](https://swagger.io/)
 
 ## TMS.Storage.API configuration:
-- You have to change the file "appsettings.json" in the part of "ConnectionStrings": server for your SQLServer name and Database for your Database name.
+- You have to change the file "appsettings.json" in TMS.Storage.API in the part of "ConnectionStrings": server for your SQLServer name and Database for your Database name.
+- You have to change the file "appsettings.json" in TMS.Report.API and put in the line of localhost the port of your server. 
 - You have to change the route on lines 7 and 9 for the route of your files of SQLServer before execute the script.sql
 - 3 types of State: Planned, inProgress and Completed.
 
