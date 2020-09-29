@@ -5,9 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using API.Models;
 using Microsoft.Extensions.Configuration;
-using AutoMapper;
-using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace API.Controllers
@@ -37,7 +34,11 @@ namespace API.Controllers
         public async Task<IActionResult> Details()
         {
             var tmstasks = await _context.Tmstask.ToListAsync();
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmstasks) : (IActionResult)Ok(tmstasks);
+            if (tmstasks.Count == 0)
+            {
+                return NotFound();
+            }
+            return Ok(tmstasks);
         }
 
         [Route("/Tasks/{id}")]
@@ -56,7 +57,7 @@ namespace API.Controllers
                 return NotFound();
             }
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmstask) : (IActionResult)Ok(tmstask);
+            return Ok(tmstask);
         }
 
         [Route("/Subtasks/{id}")]
@@ -70,12 +71,12 @@ namespace API.Controllers
 
             var tmssubtask = await _contextSub.Tmssubtask
                 .Where(m => m.Id == id).ToListAsync();
-            if (tmssubtask == null)
+            if (tmssubtask.Count == 0)
             {
                 return NotFound();
             }
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmssubtask) : (IActionResult)Ok(tmssubtask);
+            return Ok(tmssubtask);
         }
 
         [Route("/Task/{id}/Subtasks")]
@@ -89,12 +90,12 @@ namespace API.Controllers
 
             var tmssubtask = await _contextSub.Tmssubtask
                 .Where(m => m.IdTask == id).ToListAsync();
-            if (tmssubtask == null)
+            if (tmssubtask.Count == 0)
             {
                 return NotFound();
             }
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmssubtask) : (IActionResult)Ok(tmssubtask);
+            return Ok(tmssubtask);
         }
 
         [Route("/Task/Create")]
@@ -106,43 +107,72 @@ namespace API.Controllers
                 tmstask.Id = Guid.NewGuid();
                 tmstask.State = "Planned";
                 tmstask.StartDate = DateTime.Now;
+                if (tmstask.Name == null)
+                {
+                    return BadRequest("Error, name can not be null");
+                }
+                if (tmstask.Description == null)
+                {
+                    return BadRequest("Error, description can not be null");
+                }
                 _context.Add(tmstask);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
             }
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmstask) : (IActionResult)Ok(tmstask);
+            return Ok();
         }
 
         [Route("/Subtask/Create")]
         [HttpPost]
-        public async Task<IActionResult> CreateSubtask(TMSSubtask tmssubtask)
+        public async Task<IActionResult> CreateSubtask(Guid? idTask, TMSSubtask tmssubtask)
         {
+            if(idTask == null)
+            {
+                return NotFound();
+            }
+            tmssubtask.IdTask = (Guid)idTask;
             if (ModelState.IsValid)
             {
                 tmssubtask.Id = Guid.NewGuid();
                 tmssubtask.State = "Planned";
                 tmssubtask.StartDate = DateTime.Now;
+                if (tmssubtask.Name == null)
+                {
+                    return BadRequest("Error, name can not be null");
+                }
+                if (tmssubtask.Description == null)
+                {
+                    return BadRequest("Error, description can not be null");
+                }
                 _contextSub.Add(tmssubtask);
                 await _contextSub.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
             }
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmssubtask) : (IActionResult)Ok(tmssubtask);
+            return Ok();
         }
 
         [Route("/Tasks/Edit/{id}")]
         [HttpPut]
-        public async Task<IActionResult> EditTask(Guid id, TMStask tmstask)
+        public async Task<IActionResult> EditTask(Guid? id, TMStask tmstask)
         {
-            tmstask.Id = id;
-            var okResultTask = await Details(id) as OkObjectResult;
-            var taskState = okResultTask.Value as TMStask;
-            var oldState = taskState.State;
-            if (tmstask.Id == null)
+            if (id == null)
             {
                 return NotFound();
             }
+            tmstask.Id = (Guid)id;
+            var okResultTask = await Details(id) as OkObjectResult;
+            var oldTask = okResultTask.Value as TMStask;
+            var oldState = oldTask.State;
+            tmstask.StartDate = oldTask.StartDate;
+
             var okResultList = await DetailsSubtasksByTask(id) as OkObjectResult;
-            var listSubtasks = okResultList.Value as List<TMSSubtask>;
+            var listSubtasks = new List<TMSSubtask>();
+            if (okResultList != null)
+            {
+                listSubtasks = okResultList.Value as List<TMSSubtask>;
+            }
+            else
+            {
+                listSubtasks = new List<TMSSubtask>();
+            }
             if (ModelState.IsValid)
             {
                 try
@@ -155,6 +185,14 @@ namespace API.Controllers
                         }
                         else
                         {
+                            if (tmstask.Name == null)
+                            {
+                                return BadRequest("Error, name can not be null");
+                            }
+                            if (tmstask.Description == null)
+                            {
+                                return BadRequest("Error, description can not be null");
+                            }
                             _context.Update(tmstask);
                             await _context.SaveChangesAsync();
                         }
@@ -164,6 +202,14 @@ namespace API.Controllers
                         if(tmstask.State == "Completed")
                         {
                             tmstask.FinishDate = DateTime.Now;
+                        }
+                        if (tmstask.Name == null)
+                        {
+                            return BadRequest("Error, name can not be null");
+                        }
+                        if (tmstask.Description == null)
+                        {
+                            return BadRequest("Error, description can not be null");
                         }
                         _context.Update(tmstask);
                         await _context.SaveChangesAsync();
@@ -182,29 +228,37 @@ namespace API.Controllers
                 }
             }
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmstask) : (IActionResult)Ok(tmstask);
+            return Ok(tmstask);
         }
 
         [Route("/Subtasks/Edit/{id}")]
         [HttpPut]
-        public async Task<IActionResult> EditSubtask(Guid id, TMSSubtask tmsSubtask)
+        public async Task<IActionResult> EditSubtask(Guid? id, TMSSubtask tmsSubtask)
         {
-            tmsSubtask.Id = id;
-
-
-            if (tmsSubtask.Id == null)
+            if (id == null)
             {
                 return NotFound();
             }
+            tmsSubtask.Id = (Guid)id;
+
 
             var okResult = await DetailsSubtasks(id) as OkObjectResult;
             var oldSubtask = okResult.Value as List<TMSSubtask>;
             tmsSubtask.IdTask = oldSubtask.First().IdTask;
+            tmsSubtask.StartDate = oldSubtask.First().StartDate;
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    if (tmsSubtask.Name == null)
+                    {
+                        return BadRequest("Error, name can not be null");
+                    }
+                    if (tmsSubtask.Description == null)
+                    {
+                        return BadRequest("Error, description can not be null");
+                    }
                     _contextSub.Update(tmsSubtask);
                     await _contextSub.SaveChangesAsync();
                     var okResultList = await DetailsSubtasksByTask(tmsSubtask.IdTask) as OkObjectResult;
@@ -227,7 +281,7 @@ namespace API.Controllers
                 }
             }
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View(tmsSubtask) : (IActionResult)Ok(tmsSubtask);
+            return Ok(tmsSubtask);
         }
 
         // GET: Tmstasks/Delete/5
@@ -250,7 +304,7 @@ namespace API.Controllers
             _context.Tmstask.Remove(tmstask);
             await _context.SaveChangesAsync();
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View() : (IActionResult)Ok();
+            return Ok();
         }
 
         [Route("/Subtasks/Delete/{id}")]
@@ -272,7 +326,7 @@ namespace API.Controllers
             _contextSub.Tmssubtask.Remove(tmsSubtask);
             await _contextSub.SaveChangesAsync();
 
-            return _configuration.GetValue<bool>("UseView") ? (IActionResult)View() : (IActionResult)Ok();
+            return Ok();
         }
 
         private bool TmsTaskExists(Guid id)
